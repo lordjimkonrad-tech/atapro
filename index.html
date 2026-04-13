@@ -3,134 +3,146 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ATAPRO — Gestão de Reuniões Industrial</title>
+<title>ATAPRO — Gestão de Reuniões</title>
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: #F8FAFC; font-family: 'DM Sans', sans-serif; }
-  input, select, button { font-family: 'DM Sans', sans-serif; }
+  input, select, button, textarea { font-family: 'DM Sans', sans-serif; }
   ::-webkit-scrollbar { width: 5px; }
   ::-webkit-scrollbar-track { background: #F1F5F9; }
   ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 10px; }
   input[type=range] { -webkit-appearance: none; width: 100%; height: 4px; border-radius: 2px; background: #E2E8F0; outline: none; }
   input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #3B82F6; cursor: pointer; }
-  .card-hover { transition: box-shadow 0.15s, transform 0.15s; }
+  .card-hover { transition: box-shadow 0.15s, transform 0.15s; cursor: pointer; }
   .card-hover:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.09); transform: translateY(-1px); }
   .btn-primary { background: #3B82F6; color: #fff; border: none; border-radius: 7px; padding: 8px 18px; font-size: 13px; font-weight: 700; cursor: pointer; transition: background 0.15s; }
   .btn-primary:hover { background: #2563EB; }
-  .btn-ghost { background: none; border: 1px solid #E2E8F0; color: #475569; border-radius: 7px; padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+  .btn-primary:disabled { background: #93C5FD; cursor: not-allowed; }
+  .btn-ghost { background: none; border: 1px solid #E2E8F0; color: #475569; border-radius: 7px; padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; }
   .btn-ghost:hover { background: #F1F5F9; }
-  .fade-in { animation: fadeIn 0.3s ease; }
-  @keyframes fadeIn { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform: translateY(0); } }
-  .modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.55); z-index: 200; display: flex; align-items: center; justify-content: center; animation: fadeIn 0.2s ease; }
+  .fade-in { animation: fadeIn 0.25s ease; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:translateY(0); } }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.55); z-index: 200; display: flex; align-items: center; justify-content: center; }
+  .inp { width: 100%; padding: 8px 11px; border-radius: 6px; border: 1px solid #E2E8F0; font-size: 13px; color: #0F172A; outline: none; background: #fff; }
+  .inp:focus { border-color: #3B82F6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+  .label { font-size: 12px; font-weight: 600; color: #475569; display: block; margin-bottom: 4px; }
+  .spinner { width: 18px; height: 18px; border: 2px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin 0.6s linear infinite; display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .toast { position: fixed; bottom: 24px; right: 24px; background: #0F172A; color: #fff; padding: 12px 18px; border-radius: 8px; font-size: 13px; font-weight: 500; z-index: 999; animation: fadeIn 0.2s ease; }
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
 
-const { useState, useCallback } = React;
+const { useState, useEffect, useCallback } = React;
 
-const TODAY = new Date("2026-04-11");
+// ── CONFIG SUPABASE — eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indtd3d5b2pvZWhyZHV2d3l4c3d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwMjg3MzAsImV4cCI6MjA5MTYwNDczMH0.N4M90eZs7xPNdgkjKTdYCHmryCDTQWn0Idw8_Q0ioj4 ──
+const SUPABASE_URL = "https://wmwwyojoehrduvwyxswz.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indtd3d5b2pvZWhyZHV2d3l4c3d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwMjg3MzAsImV4cCI6MjA5MTYwNDczMH0.N4M90eZs7xPNdgkjKTdYCHmryCDTQWn0Idw8_Q0ioj4";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const MOCK = [
-  {
-    id: 1, title: "DDS - Segurança Semanal", date: "2026-04-08",
-    type: "Segurança", facilitator: "Carlos Mendes",
-    participants: ["Carlos Mendes", "Ana Lima", "Roberto Silva", "Paula Souza"],
-    status: "em_andamento",
-    actions: [
-      { id: 1, what: "Revisar EPIs do setor de solda", who: "Ana Lima", when: "2026-04-15", priority: "alta", status: "pendente", progress: 0 },
-      { id: 2, what: "Treinamento de NR-12 para novos operadores", who: "Roberto Silva", when: "2026-04-20", priority: "alta", status: "em_andamento", progress: 60 },
-      { id: 3, what: "Atualizar PPRA do setor", who: "Paula Souza", when: "2026-04-30", priority: "media", status: "concluido", progress: 100 },
-    ]
-  },
-  {
-    id: 2, title: "Reunião de Qualidade — PDCA", date: "2026-04-07",
-    type: "Qualidade", facilitator: "Eng. Fernanda Costa",
-    participants: ["Fernanda Costa", "Marcos Oliveira", "Juliana Pereira"],
-    status: "em_andamento",
-    actions: [
-      { id: 4, what: "Implementar CEP na linha 3", who: "Marcos Oliveira", when: "2026-04-18", priority: "alta", status: "em_andamento", progress: 30 },
-      { id: 5, what: "Calibrar instrumentos de medição", who: "Juliana Pereira", when: "2026-04-12", priority: "critica", status: "pendente", progress: 0 },
-      { id: 6, what: "Atualizar FMEA do produto A", who: "Fernanda Costa", when: "2026-04-25", priority: "media", status: "pendente", progress: 0 },
-    ]
-  },
-  {
-    id: 3, title: "Alinhamento de Produção", date: "2026-04-05",
-    type: "Produção", facilitator: "Gerente Souza",
-    participants: ["Gerente Souza", "Líderes de turno A, B, C"],
-    status: "concluido",
-    actions: [
-      { id: 7, what: "Ajustar setup da prensa P02", who: "Turno A", when: "2026-04-06", priority: "alta", status: "concluido", progress: 100 },
-      { id: 8, what: "Solicitar matéria-prima adicional", who: "Compras", when: "2026-04-07", priority: "media", status: "concluido", progress: 100 },
-    ]
-  },
-  {
-    id: 4, title: "RH — Clima Organizacional", date: "2026-04-03",
-    type: "RH", facilitator: "Dra. Beatriz Ramos",
-    participants: ["Beatriz Ramos", "Diretores", "Supervisores"],
-    status: "em_andamento",
-    actions: [
-      { id: 9, what: "Aplicar pesquisa de clima Q2", who: "Beatriz Ramos", when: "2026-04-20", priority: "media", status: "pendente", progress: 0 },
-      { id: 10, what: "Revisar plano de cargos e salários", who: "Diretoria", when: "2026-05-01", priority: "alta", status: "pendente", progress: 0 },
-    ]
-  }
-];
-
+// ── CONSTANTS ──
 const TYPE_COLORS = {
-  "Segurança": { bg: "#FFF8E1", text: "#7B5800", dot: "#F59E0B" },
-  "Qualidade": { bg: "#E0F2FE", text: "#0C4A6E", dot: "#0EA5E9" },
-  "Produção":  { bg: "#DCFCE7", text: "#14532D", dot: "#22C55E" },
-  "RH":        { bg: "#EDE9FE", text: "#3B0764", dot: "#8B5CF6" },
-  "Manutenção":{ bg: "#FFE4E6", text: "#881337", dot: "#F43F5E" },
+  "Segurança": { bg:"#FFF8E1", text:"#7B5800", dot:"#F59E0B" },
+  "Qualidade": { bg:"#E0F2FE", text:"#0C4A6E", dot:"#0EA5E9" },
+  "Produção":  { bg:"#DCFCE7", text:"#14532D", dot:"#22C55E" },
+  "RH":        { bg:"#EDE9FE", text:"#3B0764", dot:"#8B5CF6" },
+  "Manutenção":{ bg:"#FFE4E6", text:"#881337", dot:"#F43F5E" },
 };
-
 const PRIORITY = {
-  critica: { label: "Crítica", color: "#DC2626", bg: "#FEE2E2" },
-  alta:    { label: "Alta",    color: "#EA580C", bg: "#FFEDD5" },
-  media:   { label: "Média",   color: "#CA8A04", bg: "#FEF9C3" },
-  baixa:   { label: "Baixa",   color: "#16A34A", bg: "#DCFCE7" },
+  critica: { label:"Crítica", color:"#DC2626", bg:"#FEE2E2" },
+  alta:    { label:"Alta",    color:"#EA580C", bg:"#FFEDD5" },
+  media:   { label:"Média",   color:"#CA8A04", bg:"#FEF9C3" },
+  baixa:   { label:"Baixa",   color:"#16A34A", bg:"#DCFCE7" },
 };
-
-const STATUS = {
-  pendente:     { label: "Pendente",     color: "#64748B", bg: "#F1F5F9" },
-  em_andamento: { label: "Em andamento", color: "#2563EB", bg: "#DBEAFE" },
-  concluido:    { label: "Concluído",    color: "#16A34A", bg: "#DCFCE7" },
+const STATUS_CFG = {
+  pendente:     { label:"Pendente",     color:"#64748B", bg:"#F1F5F9" },
+  em_andamento: { label:"Em andamento", color:"#2563EB", bg:"#DBEAFE" },
+  concluido:    { label:"Concluído",    color:"#16A34A", bg:"#DCFCE7" },
 };
 
 function daysLeft(dateStr) {
-  return Math.ceil((new Date(dateStr) - TODAY) / 86400000);
+  return Math.ceil((new Date(dateStr) - new Date()) / 86400000);
 }
 
-/* ── TOP BAR ── */
-function TopBar({ view, setView, onNew }) {
+// ── TOAST ──
+function Toast({ msg, onDone }) {
+  useEffect(() => { const t = setTimeout(onDone, 2800); return () => clearTimeout(t); }, []);
+  return <div className="toast">{msg}</div>;
+}
+
+// ── LOGIN ──
+function Login() {
+  const [email, setEmail] = useState("");
+  const [pass, setPass]   = useState("");
+  const [err, setErr]     = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async () => {
+    if (!email || !pass) { setErr("Preencha email e senha."); return; }
+    setLoading(true); setErr("");
+    const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+    if (error) { setErr("Email ou senha incorretos."); setLoading(false); }
+  };
+
   return (
-    <div style={{ background:"#0F172A", borderBottom:"1px solid #1E293B", padding:"0 28px", display:"flex", alignItems:"center", justifyContent:"space-between", height:54, position:"sticky", top:0, zIndex:100 }}>
-      <div style={{ display:"flex", alignItems:"center", gap:32 }}>
-        <div style={{ display:"flex", alignItems:"center", gap:9 }}>
-          <div style={{ width:28, height:28, borderRadius:7, background:"linear-gradient(135deg,#3B82F6,#6366F1)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:15, fontWeight:900, color:"#fff", fontFamily:"'DM Serif Display',serif" }}>A</div>
-          <span style={{ color:"#F1F5F9", fontWeight:700, fontSize:15, fontFamily:"'DM Serif Display',serif", letterSpacing:"-0.3px" }}>ATA<span style={{ color:"#3B82F6" }}>PRO</span></span>
+    <div style={{ minHeight:"100vh", background:"#0F172A", display:"flex", alignItems:"center", justifyContent:"center" }}>
+      <div className="fade-in" style={{ background:"#fff", borderRadius:14, padding:36, width:380, boxShadow:"0 24px 64px rgba(0,0,0,0.3)" }}>
+        <div style={{ textAlign:"center", marginBottom:28 }}>
+          <div style={{ width:44, height:44, borderRadius:11, background:"linear-gradient(135deg,#3B82F6,#6366F1)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, fontWeight:900, color:"#fff", fontFamily:"'DM Serif Display',serif", margin:"0 auto 12px" }}>A</div>
+          <h1 style={{ fontSize:22, fontWeight:700, color:"#0F172A", fontFamily:"'DM Serif Display',serif" }}>ATA<span style={{ color:"#3B82F6" }}>PRO</span></h1>
+          <p style={{ fontSize:13, color:"#94A3B8", marginTop:4 }}>Gestão de Reuniões Industrial</p>
         </div>
-        <nav style={{ display:"flex", gap:2 }}>
-          {[["dashboard","Dashboard"],["reunioes","Reuniões"],["acoes","Planos de Ação"]].map(([id,label]) => (
-            <button key={id} onClick={() => setView(id)} style={{ background: view===id?"#1E293B":"transparent", border:"none", color: view===id?"#F1F5F9":"#64748B", padding:"6px 14px", borderRadius:6, cursor:"pointer", fontSize:13, fontWeight: view===id?600:400, transition:"all 0.15s" }}>{label}</button>
-          ))}
-        </nav>
-      </div>
-      <div style={{ display:"flex", gap:12, alignItems:"center" }}>
-        <button className="btn-primary" onClick={onNew} style={{ fontSize:13, padding:"6px 16px" }}>+ Nova Reunião</button>
-        <div style={{ width:32, height:32, borderRadius:"50%", background:"linear-gradient(135deg,#6366F1,#8B5CF6)", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:12, fontWeight:700 }}>CM</div>
+        <div style={{ display:"flex", flexDirection:"column", gap:13 }}>
+          <div>
+            <label className="label">Email</label>
+            <input className="inp" type="email" placeholder="seu@email.com" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleLogin()} />
+          </div>
+          <div>
+            <label className="label">Senha</label>
+            <input className="inp" type="password" placeholder="••••••••" value={pass} onChange={e=>setPass(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleLogin()} />
+          </div>
+          {err && <div style={{ fontSize:12, color:"#DC2626", background:"#FEE2E2", padding:"8px 11px", borderRadius:6 }}>{err}</div>}
+          <button className="btn-primary" onClick={handleLogin} disabled={loading} style={{ width:"100%", padding:"10px", marginTop:4 }}>
+            {loading ? <span className="spinner" /> : "Entrar"}
+          </button>
+        </div>
       </div>
     </div>
   );
 }
 
-/* ── STAT CARD ── */
+// ── TOP BAR ──
+function TopBar({ view, setView, onNew, userEmail, onLogout }) {
+  const initials = userEmail ? userEmail.substring(0,2).toUpperCase() : "??";
+  return (
+    <div style={{ background:"#0F172A", borderBottom:"1px solid #1E293B", padding:"0 28px", display:"flex", alignItems:"center", justifyContent:"space-between", height:54, position:"sticky", top:0, zIndex:100 }}>
+      <div style={{ display:"flex", alignItems:"center", gap:28 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:9 }}>
+          <div style={{ width:28, height:28, borderRadius:7, background:"linear-gradient(135deg,#3B82F6,#6366F1)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:15, fontWeight:900, color:"#fff", fontFamily:"'DM Serif Display',serif" }}>A</div>
+          <span style={{ color:"#F1F5F9", fontWeight:700, fontSize:15, fontFamily:"'DM Serif Display',serif" }}>ATA<span style={{ color:"#3B82F6" }}>PRO</span></span>
+        </div>
+        <nav style={{ display:"flex", gap:2 }}>
+          {[["dashboard","Dashboard"],["reunioes","Reuniões"],["acoes","Planos de Ação"]].map(([id,label])=>(
+            <button key={id} onClick={()=>setView(id)} style={{ background:view===id?"#1E293B":"transparent", border:"none", color:view===id?"#F1F5F9":"#64748B", padding:"6px 14px", borderRadius:6, cursor:"pointer", fontSize:13, fontWeight:view===id?600:400 }}>{label}</button>
+          ))}
+        </nav>
+      </div>
+      <div style={{ display:"flex", gap:10, alignItems:"center" }}>
+        <button className="btn-primary" onClick={onNew} style={{ fontSize:13, padding:"6px 16px" }}>+ Nova Reunião</button>
+        <div onClick={onLogout} title={`Sair (${userEmail})`} style={{ width:32, height:32, borderRadius:"50%", background:"linear-gradient(135deg,#6366F1,#8B5CF6)", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:12, fontWeight:700, cursor:"pointer" }}>{initials}</div>
+      </div>
+    </div>
+  );
+}
+
+// ── STAT CARD ──
 function Stat({ label, value, sub, color, icon }) {
   return (
     <div style={{ background:"#fff", border:"1px solid #E2E8F0", borderRadius:12, padding:"18px 22px", flex:1, minWidth:140 }}>
@@ -138,50 +150,83 @@ function Stat({ label, value, sub, color, icon }) {
         <div>
           <div style={{ fontSize:11, color:"#94A3B8", fontWeight:600, textTransform:"uppercase", letterSpacing:"0.06em" }}>{label}</div>
           <div style={{ fontSize:30, fontWeight:800, color:"#0F172A", lineHeight:1.2, marginTop:3 }}>{value}</div>
-          {sub && <div style={{ fontSize:11, color: color||"#64748B", marginTop:3, fontWeight:500 }}>{sub}</div>}
+          {sub && <div style={{ fontSize:11, color:color||"#64748B", marginTop:3, fontWeight:500 }}>{sub}</div>}
         </div>
-        <div style={{ fontSize:22, opacity:0.7 }}>{icon}</div>
+        <div style={{ fontSize:22, opacity:0.6 }}>{icon}</div>
       </div>
     </div>
   );
 }
 
-/* ── DASHBOARD ── */
+function Loading() {
+  return (
+    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", padding:60 }}>
+      <div style={{ width:28, height:28, border:"3px solid #E2E8F0", borderTop:"3px solid #3B82F6", borderRadius:"50%", animation:"spin 0.6s linear infinite" }} />
+    </div>
+  );
+}
+
+// ── DASHBOARD ──
 function Dashboard({ meetings, setView, setSelected }) {
-  const all = meetings.flatMap(m => m.actions.map(a => ({ ...a, mTitle: m.title, mType: m.type })));
-  const pending   = all.filter(a => a.status==="pendente").length;
-  const inProg    = all.filter(a => a.status==="em_andamento").length;
-  const done      = all.filter(a => a.status==="concluido").length;
-  const critical  = all.filter(a => a.priority==="critica" && a.status!=="concluido").length;
-  const upcoming  = [...all].filter(a => a.status!=="concluido").sort((x,y) => new Date(x.when)-new Date(y.when)).slice(0,5);
+  const [filterWho, setFilterWho] = useState("todos");
+
+  const all = meetings.flatMap(m => (m.actions||[]).map(a => ({ ...a, mTitle:m.title, mType:m.type })));
+
+  // Lista de responsáveis únicos
+  const whoList = [...new Set(all.map(a => a.who).filter(Boolean))].sort();
+
+  const filtered = filterWho === "todos" ? all : all.filter(a => a.who === filterWho);
+
+  const pending  = filtered.filter(a=>a.status==="pendente").length;
+  const inProg   = filtered.filter(a=>a.status==="em_andamento").length;
+  const done     = filtered.filter(a=>a.status==="concluido").length;
+  const critical = filtered.filter(a=>a.priority==="critica"&&a.status!=="concluido").length;
+  const upcoming = [...filtered].filter(a=>a.status!=="concluido").sort((x,y)=>new Date(x.due_date)-new Date(y.due_date)).slice(0,6);
+
+  const sel = { fontSize:12, padding:"6px 14px", borderRadius:7, border:"1px solid #E2E8F0", color:"#0F172A", cursor:"pointer", background:"#fff", fontWeight:500 };
 
   return (
     <div className="fade-in" style={{ padding:"28px 32px", maxWidth:1080, margin:"0 auto" }}>
-      <div style={{ marginBottom:22 }}>
-        <h1 style={{ fontSize:21, fontWeight:700, color:"#0F172A", fontFamily:"'DM Serif Display',serif" }}>Dashboard</h1>
-        <p style={{ color:"#94A3B8", fontSize:12, marginTop:3 }}>Visão geral — Abril 2026</p>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", marginBottom:22 }}>
+        <div>
+          <h1 style={{ fontSize:21, fontWeight:700, color:"#0F172A", fontFamily:"'DM Serif Display',serif" }}>Dashboard</h1>
+          <p style={{ color:"#94A3B8", fontSize:12, marginTop:3 }}>{new Date().toLocaleDateString("pt-BR",{month:"long",year:"numeric"})}</p>
+        </div>
+        {/* FILTRO POR RESPONSÁVEL */}
+        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+          <span style={{ fontSize:12, color:"#64748B", fontWeight:600 }}>👤 Responsável:</span>
+          <select style={sel} value={filterWho} onChange={e=>setFilterWho(e.target.value)}>
+            <option value="todos">Todos</option>
+            {whoList.map(w => <option key={w} value={w}>{w}</option>)}
+          </select>
+        </div>
       </div>
+
       <div style={{ display:"flex", gap:14, marginBottom:26, flexWrap:"wrap" }}>
-        <Stat label="Pendentes"    value={pending}  sub="aguardando início"              color="#EA580C" icon="○" />
-        <Stat label="Em andamento" value={inProg}   sub="em execução"                    color="#2563EB" icon="◑" />
-        <Stat label="Concluídas"   value={done}     sub="este mês"                       color="#16A34A" icon="✓" />
-        <Stat label="Críticas"     value={critical} sub={critical>0?"atenção necessária":"tudo ok"} color={critical>0?"#DC2626":"#16A34A"} icon="⚡" />
+        <Stat label="Pendentes"    value={pending}  sub="aguardando início"   color="#EA580C" icon="○" />
+        <Stat label="Em andamento" value={inProg}   sub="em execução"         color="#2563EB" icon="◑" />
+        <Stat label="Concluídas"   value={done}     sub="até hoje"            color="#16A34A" icon="✓" />
+        <Stat label="Críticas"     value={critical} sub={critical>0?"atenção":"tudo ok"} color={critical>0?"#DC2626":"#16A34A"} icon="⚡" />
       </div>
 
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:18 }}>
         <div style={{ background:"#fff", border:"1px solid #E2E8F0", borderRadius:12, padding:20 }}>
-          <h3 style={{ fontSize:13, fontWeight:700, color:"#0F172A", marginBottom:14 }}>⏰ Próximos Vencimentos</h3>
+          <h3 style={{ fontSize:13, fontWeight:700, color:"#0F172A", marginBottom:14 }}>
+            ⏰ Próximos Vencimentos
+            {filterWho !== "todos" && <span style={{ fontSize:11, fontWeight:500, color:"#3B82F6", marginLeft:8 }}>· {filterWho}</span>}
+          </h3>
+          {upcoming.length === 0 && <p style={{ fontSize:13, color:"#94A3B8" }}>Nenhuma ação pendente.</p>}
           {upcoming.map(a => {
-            const d = daysLeft(a.when);
-            const late = d < 0, soon = d>=0 && d<=3;
+            const d = daysLeft(a.due_date);
+            const late=d<0, soon=d>=0&&d<=3;
             return (
               <div key={a.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"9px 0", borderBottom:"1px solid #F8FAFC" }}>
-                <div>
+                <div style={{ flex:1 }}>
                   <div style={{ fontSize:13, fontWeight:600, color:"#0F172A" }}>{a.what}</div>
                   <div style={{ fontSize:11, color:"#94A3B8", marginTop:2 }}>{a.who} · {a.mTitle}</div>
                 </div>
-                <span style={{ fontSize:11, fontWeight:700, padding:"3px 9px", borderRadius:20, background: late?"#FEE2E2":soon?"#FEF3C7":"#F1F5F9", color: late?"#DC2626":soon?"#92400E":"#64748B", whiteSpace:"nowrap", marginLeft:10 }}>
-                  {late ? `${Math.abs(d)}d atraso` : d===0 ? "hoje" : `${d}d`}
+                <span style={{ fontSize:11, fontWeight:700, padding:"3px 9px", borderRadius:20, background:late?"#FEE2E2":soon?"#FEF3C7":"#F1F5F9", color:late?"#DC2626":soon?"#92400E":"#64748B", whiteSpace:"nowrap", marginLeft:10 }}>
+                  {late?`${Math.abs(d)}d atraso`:d===0?"hoje":`${d}d`}
                 </span>
               </div>
             );
@@ -190,20 +235,25 @@ function Dashboard({ meetings, setView, setSelected }) {
 
         <div style={{ background:"#fff", border:"1px solid #E2E8F0", borderRadius:12, padding:20 }}>
           <h3 style={{ fontSize:13, fontWeight:700, color:"#0F172A", marginBottom:14 }}>📋 Reuniões Recentes</h3>
-          {meetings.map(m => {
-            const pct = Math.round((m.actions.filter(a=>a.status==="concluido").length / m.actions.length)*100);
-            const tc = TYPE_COLORS[m.type] || TYPE_COLORS["Produção"];
+          {meetings.length === 0 && <p style={{ fontSize:13, color:"#94A3B8" }}>Nenhuma reunião ainda.</p>}
+          {meetings.slice(0,5).map(m => {
+            const acts = (m.actions||[]).filter(a => filterWho==="todos" || a.who===filterWho);
+            const total = (m.actions||[]).length;
+            const pct = total ? Math.round((m.actions.filter(a=>a.status==="concluido").length/total)*100) : 0;
+            const tc = TYPE_COLORS[m.type]||TYPE_COLORS["Produção"];
             return (
-              <div key={m.id} onClick={() => { setSelected(m); setView("reunioes"); }}
+              <div key={m.id} onClick={()=>{ setSelected(m); setView("reunioes"); }}
                 style={{ display:"flex", alignItems:"center", gap:10, padding:"9px 0", borderBottom:"1px solid #F8FAFC", cursor:"pointer" }}>
                 <div style={{ width:7, height:7, borderRadius:"50%", background:tc.dot, flexShrink:0 }} />
                 <div style={{ flex:1 }}>
                   <div style={{ fontSize:13, fontWeight:600, color:"#0F172A" }}>{m.title}</div>
-                  <div style={{ fontSize:11, color:"#94A3B8" }}>{m.date} · {m.actions.length} ações</div>
+                  <div style={{ fontSize:11, color:"#94A3B8" }}>{m.date} · {total} ações
+                    {filterWho!=="todos" && acts.length>0 && <span style={{ color:"#3B82F6" }}> · {acts.length} de {m.who}</span>}
+                  </div>
                 </div>
                 <div style={{ display:"flex", alignItems:"center", gap:6 }}>
                   <div style={{ width:56, height:4, background:"#F1F5F9", borderRadius:2, overflow:"hidden" }}>
-                    <div style={{ width:`${pct}%`, height:"100%", background: pct===100?"#16A34A":"#3B82F6", borderRadius:2 }} />
+                    <div style={{ width:`${pct}%`, height:"100%", background:pct===100?"#16A34A":"#3B82F6", borderRadius:2 }} />
                   </div>
                   <span style={{ fontSize:11, color:"#64748B", width:28, textAlign:"right" }}>{pct}%</span>
                 </div>
@@ -216,43 +266,56 @@ function Dashboard({ meetings, setView, setSelected }) {
   );
 }
 
-/* ── MEETING DETAIL ── */
-function MeetingDetail({ meeting, onBack, onUpdate }) {
-  const tc = TYPE_COLORS[meeting.type] || TYPE_COLORS["Produção"];
+// ── MEETING DETAIL ──
+function MeetingDetail({ meeting, onBack, onUpdateAction }) {
+  const tc = TYPE_COLORS[meeting.type]||TYPE_COLORS["Produção"];
+  const [saving, setSaving] = useState(null);
+
+  const handleUpdate = async (actionId, field, value) => {
+    setSaving(actionId);
+    const update = { [field]: value };
+    if (field==="status" && value==="concluido") update.progress = 100;
+    if (field==="status" && value==="pendente")  update.progress = 0;
+    const { error } = await sb.from("actions").update(update).eq("id", actionId);
+    if (!error) onUpdateAction(meeting.id, actionId, update);
+    setSaving(null);
+  };
+
   return (
     <div className="fade-in" style={{ padding:"28px 32px", maxWidth:860, margin:"0 auto" }}>
       <button onClick={onBack} style={{ background:"none", border:"none", color:"#3B82F6", fontSize:13, cursor:"pointer", fontWeight:600, marginBottom:20, padding:0 }}>← Voltar</button>
       <div style={{ background:"#fff", border:"1px solid #E2E8F0", borderRadius:12, padding:22, marginBottom:18 }}>
         <span style={{ fontSize:11, fontWeight:600, padding:"2px 9px", borderRadius:4, background:tc.bg, color:tc.text }}>{meeting.type}</span>
         <h2 style={{ margin:"8px 0 4px", fontSize:19, fontWeight:700, color:"#0F172A", fontFamily:"'DM Serif Display',serif" }}>{meeting.title}</h2>
-        <div style={{ fontSize:12, color:"#64748B" }}>📅 {meeting.date} &nbsp;·&nbsp; 👤 {meeting.facilitator} &nbsp;·&nbsp; 👥 {meeting.participants.length} participantes</div>
+        <div style={{ fontSize:12, color:"#64748B" }}>📅 {meeting.date} &nbsp;·&nbsp; 👤 {meeting.facilitator} &nbsp;·&nbsp; 👥 {(meeting.participants||[]).length} participantes</div>
         <div style={{ marginTop:10, display:"flex", flexWrap:"wrap", gap:5 }}>
-          {meeting.participants.map((p,i) => (
+          {(meeting.participants||[]).map((p,i)=>(
             <span key={i} style={{ fontSize:11, padding:"2px 8px", background:"#F8FAFC", border:"1px solid #E2E8F0", borderRadius:20, color:"#475569" }}>{p}</span>
           ))}
         </div>
       </div>
-
       <h3 style={{ fontSize:14, fontWeight:700, color:"#0F172A", marginBottom:10 }}>Planos de Ação</h3>
+      {(meeting.actions||[]).length === 0 && <p style={{ fontSize:13, color:"#94A3B8" }}>Nenhuma ação registrada.</p>}
       <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-        {meeting.actions.map(a => {
-          const pc = PRIORITY[a.priority]; const sc = STATUS[a.status];
-          const d = daysLeft(a.when); const late = d<0 && a.status!=="concluido";
+        {(meeting.actions||[]).map(a => {
+          const pc=PRIORITY[a.priority]||PRIORITY.media;
+          const sc=STATUS_CFG[a.status]||STATUS_CFG.pendente;
+          const d=daysLeft(a.due_date); const late=d<0&&a.status!=="concluido";
           return (
-            <div key={a.id} style={{ background:"#fff", border:`1px solid ${late?"#FCA5A5":"#E2E8F0"}`, borderRadius:10, padding:"14px 16px", borderLeft:`3px solid ${pc.color}` }}>
+            <div key={a.id} style={{ background:"#fff", border:`1px solid ${late?"#FCA5A5":"#E2E8F0"}`, borderRadius:10, padding:"14px 16px", borderLeft:`3px solid ${pc.color}`, opacity:saving===a.id?0.6:1, transition:"opacity 0.2s" }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:10 }}>
                 <div style={{ flex:1 }}>
                   <div style={{ fontSize:14, fontWeight:600, color:"#0F172A", marginBottom:5 }}>{a.what}</div>
                   <div style={{ display:"flex", gap:12, fontSize:12, color:"#64748B" }}>
                     <span>👤 {a.who}</span>
-                    <span>📅 {a.when}</span>
+                    <span>📅 {a.due_date}</span>
                     {late && <span style={{ color:"#DC2626", fontWeight:700 }}>⚠ {Math.abs(d)}d atrasado</span>}
-                    {!late && a.status!=="concluido" && <span style={{ color: d<=3?"#EA580C":"#64748B" }}>{d===0?"vence hoje":`${d}d restantes`}</span>}
+                    {!late&&a.status!=="concluido"&&<span style={{ color:d<=3?"#EA580C":"#64748B" }}>{d===0?"vence hoje":`${d}d restantes`}</span>}
                   </div>
                 </div>
                 <div style={{ display:"flex", gap:8, alignItems:"center" }}>
                   <span style={{ fontSize:11, padding:"2px 9px", borderRadius:20, background:pc.bg, color:pc.color, fontWeight:600 }}>{pc.label}</span>
-                  <select value={a.status} onChange={e => onUpdate(meeting.id, a.id, "status", e.target.value)}
+                  <select value={a.status} onChange={e=>handleUpdate(a.id,"status",e.target.value)}
                     style={{ fontSize:11, padding:"4px 8px", borderRadius:6, background:sc.bg, color:sc.color, border:`1px solid ${sc.color}40`, fontWeight:600, cursor:"pointer" }}>
                     <option value="pendente">○ Pendente</option>
                     <option value="em_andamento">◑ Em andamento</option>
@@ -262,8 +325,10 @@ function MeetingDetail({ meeting, onBack, onUpdate }) {
               </div>
               <div style={{ display:"flex", alignItems:"center", gap:10 }}>
                 <input type="range" min="0" max="100" value={a.progress}
-                  onChange={e => onUpdate(meeting.id, a.id, "progress", parseInt(e.target.value))}
-                  style={{ flex:1, accentColor:"#3B82F6" }} />
+                  onChange={e=>onUpdateAction(meeting.id, a.id, { progress:parseInt(e.target.value) })}
+                  onMouseUp={e=>handleUpdate(a.id,"progress",parseInt(e.target.value))}
+                  onTouchEnd={e=>handleUpdate(a.id,"progress",parseInt(e.target.value))}
+                  style={{ flex:1 }} />
                 <span style={{ fontSize:12, fontWeight:700, color:"#475569", width:34, textAlign:"right" }}>{a.progress}%</span>
               </div>
             </div>
@@ -274,36 +339,38 @@ function MeetingDetail({ meeting, onBack, onUpdate }) {
   );
 }
 
-/* ── MEETINGS LIST ── */
-function Reunioes({ meetings, selected, setSelected, onUpdate }) {
-  if (selected) return <MeetingDetail meeting={selected} onBack={() => setSelected(null)} onUpdate={onUpdate} />;
+// ── REUNIOES ──
+function Reunioes({ meetings, selected, setSelected, onUpdateAction }) {
+  if (selected) return <MeetingDetail meeting={selected} onBack={()=>setSelected(null)} onUpdateAction={onUpdateAction} />;
   return (
     <div className="fade-in" style={{ padding:"28px 32px", maxWidth:860, margin:"0 auto" }}>
       <h1 style={{ fontSize:21, fontWeight:700, color:"#0F172A", fontFamily:"'DM Serif Display',serif", marginBottom:4 }}>Reuniões</h1>
       <p style={{ color:"#94A3B8", fontSize:12, marginBottom:20 }}>{meetings.length} reuniões registradas</p>
+      {meetings.length===0 && <p style={{ fontSize:13, color:"#94A3B8" }}>Nenhuma reunião ainda. Clique em "+ Nova Reunião".</p>}
       <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
         {meetings.map(m => {
-          const tc = TYPE_COLORS[m.type] || TYPE_COLORS["Produção"];
-          const done = m.actions.filter(a=>a.status==="concluido").length;
-          const pct = Math.round((done/m.actions.length)*100);
-          const crit = m.actions.filter(a=>a.priority==="critica"&&a.status!=="concluido").length;
+          const tc=TYPE_COLORS[m.type]||TYPE_COLORS["Produção"];
+          const acts=m.actions||[];
+          const done=acts.filter(a=>a.status==="concluido").length;
+          const pct=acts.length?Math.round((done/acts.length)*100):0;
+          const crit=acts.filter(a=>a.priority==="critica"&&a.status!=="concluido").length;
           return (
-            <div key={m.id} className="card-hover" onClick={() => setSelected(m)}
-              style={{ background:"#fff", border:"1px solid #E2E8F0", borderRadius:12, padding:18, cursor:"pointer", borderLeft:`3px solid ${tc.dot}` }}>
+            <div key={m.id} className="card-hover" onClick={()=>setSelected(m)}
+              style={{ background:"#fff", border:"1px solid #E2E8F0", borderRadius:12, padding:18, borderLeft:`3px solid ${tc.dot}` }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:12 }}>
                 <div>
                   <span style={{ fontSize:11, fontWeight:600, padding:"2px 8px", borderRadius:4, background:tc.bg, color:tc.text }}>{m.type}</span>
                   <h3 style={{ margin:"7px 0 3px", fontSize:15, fontWeight:700, color:"#0F172A" }}>{m.title}</h3>
                   <div style={{ fontSize:12, color:"#64748B" }}>📅 {m.date} · 👤 {m.facilitator}</div>
                 </div>
-                {crit>0 && <span style={{ fontSize:11, fontWeight:700, padding:"3px 9px", borderRadius:20, background:"#FEE2E2", color:"#DC2626" }}>⚡ {crit} crítica{crit>1?"s":""}</span>}
+                {crit>0&&<span style={{ fontSize:11, fontWeight:700, padding:"3px 9px", borderRadius:20, background:"#FEE2E2", color:"#DC2626" }}>⚡ {crit} crítica{crit>1?"s":""}</span>}
               </div>
               <div style={{ display:"flex", alignItems:"center", gap:10 }}>
                 <div style={{ flex:1, height:5, background:"#F1F5F9", borderRadius:3, overflow:"hidden" }}>
-                  <div style={{ width:`${pct}%`, height:"100%", background: pct===100?"#16A34A":"#3B82F6", borderRadius:3, transition:"width 0.5s" }} />
+                  <div style={{ width:`${pct}%`, height:"100%", background:pct===100?"#16A34A":"#3B82F6", borderRadius:3 }} />
                 </div>
-                <span style={{ fontSize:12, fontWeight:700, color: pct===100?"#16A34A":"#3B82F6", width:36, textAlign:"right" }}>{pct}%</span>
-                <span style={{ fontSize:11, color:"#94A3B8" }}>{done}/{m.actions.length} concluídas</span>
+                <span style={{ fontSize:12, fontWeight:700, color:pct===100?"#16A34A":"#3B82F6", width:36, textAlign:"right" }}>{pct}%</span>
+                <span style={{ fontSize:11, color:"#94A3B8" }}>{done}/{acts.length}</span>
               </div>
             </div>
           );
@@ -313,36 +380,51 @@ function Reunioes({ meetings, selected, setSelected, onUpdate }) {
   );
 }
 
-/* ── ACTIONS VIEW ── */
-function Acoes({ meetings, onUpdate }) {
-  const [fStatus, setFStatus] = useState("todos");
+// ── AÇÕES ──
+function Acoes({ meetings, onUpdateAction }) {
+  const [fStatus, setFStatus]     = useState("todos");
   const [fPriority, setFPriority] = useState("todos");
-  const all = meetings.flatMap(m => m.actions.map(a => ({ ...a, mTitle:m.title, mType:m.type, mId:m.id })));
-  const filtered = all.filter(a => (fStatus==="todos"||a.status===fStatus) && (fPriority==="todos"||a.priority===fPriority));
+  const [fWho, setFWho]           = useState("todos");
+  const [saving, setSaving]       = useState(null);
+
+  const all = meetings.flatMap(m=>(m.actions||[]).map(a=>({ ...a, mTitle:m.title, mType:m.type, mId:m.id })));
+  const whoList = [...new Set(all.map(a=>a.who).filter(Boolean))].sort();
+  const filtered = all.filter(a=>(fStatus==="todos"||a.status===fStatus)&&(fPriority==="todos"||a.priority===fPriority)&&(fWho==="todos"||a.who===fWho));
 
   const grouped = {};
-  filtered.forEach(a => {
-    if (!grouped[a.mTitle]) grouped[a.mTitle] = { type:a.mType, actions:[] };
-    grouped[a.mTitle].actions.push(a);
-  });
+  filtered.forEach(a=>{ if(!grouped[a.mTitle]) grouped[a.mTitle]={type:a.mType,actions:[]}; grouped[a.mTitle].actions.push(a); });
 
-  const selStyle = { fontSize:12, padding:"6px 12px", borderRadius:6, border:"1px solid #E2E8F0", color:"#475569", cursor:"pointer", background:"#fff" };
+  const handleUpdate = async (mId, aId, field, value) => {
+    setSaving(aId);
+    const update = { [field]:value };
+    if (field==="status"&&value==="concluido") update.progress=100;
+    if (field==="status"&&value==="pendente")  update.progress=0;
+    const { error } = await sb.from("actions").update(update).eq("id", aId);
+    if (!error) onUpdateAction(mId, aId, update);
+    setSaving(null);
+  };
+
+  const sel = { fontSize:12, padding:"6px 12px", borderRadius:6, border:"1px solid #E2E8F0", color:"#475569", cursor:"pointer", background:"#fff" };
 
   return (
     <div className="fade-in" style={{ padding:"28px 32px", maxWidth:980, margin:"0 auto" }}>
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20, flexWrap:"wrap", gap:12 }}>
         <div>
           <h1 style={{ fontSize:21, fontWeight:700, color:"#0F172A", fontFamily:"'DM Serif Display',serif" }}>Planos de Ação</h1>
           <p style={{ color:"#94A3B8", fontSize:12, marginTop:3 }}>{filtered.length} ações encontradas</p>
         </div>
-        <div style={{ display:"flex", gap:10 }}>
-          <select style={selStyle} value={fStatus} onChange={e => setFStatus(e.target.value)}>
+        <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
+          <select style={sel} value={fWho} onChange={e=>setFWho(e.target.value)}>
+            <option value="todos">Todos responsáveis</option>
+            {whoList.map(w=><option key={w} value={w}>{w}</option>)}
+          </select>
+          <select style={sel} value={fStatus} onChange={e=>setFStatus(e.target.value)}>
             <option value="todos">Todos os status</option>
             <option value="pendente">Pendente</option>
             <option value="em_andamento">Em andamento</option>
             <option value="concluido">Concluído</option>
           </select>
-          <select style={selStyle} value={fPriority} onChange={e => setFPriority(e.target.value)}>
+          <select style={sel} value={fPriority} onChange={e=>setFPriority(e.target.value)}>
             <option value="todos">Todas prioridades</option>
             <option value="critica">Crítica</option>
             <option value="alta">Alta</option>
@@ -351,9 +433,9 @@ function Acoes({ meetings, onUpdate }) {
           </select>
         </div>
       </div>
-
-      {Object.entries(grouped).map(([title, { type, actions }]) => {
-        const tc = TYPE_COLORS[type] || TYPE_COLORS["Produção"];
+      {filtered.length===0 && <p style={{ fontSize:13, color:"#94A3B8" }}>Nenhuma ação encontrada.</p>}
+      {Object.entries(grouped).map(([title,{type,actions}])=>{
+        const tc=TYPE_COLORS[type]||TYPE_COLORS["Produção"];
         return (
           <div key={title} style={{ marginBottom:22 }}>
             <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
@@ -362,26 +444,27 @@ function Acoes({ meetings, onUpdate }) {
               <span style={{ fontSize:11, padding:"1px 7px", borderRadius:4, background:tc.bg, color:tc.text }}>{type}</span>
             </div>
             <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
-              {actions.map(a => {
-                const pc=PRIORITY[a.priority]; const sc=STATUS[a.status];
-                const d=daysLeft(a.when); const late=d<0&&a.status!=="concluido";
+              {actions.map(a=>{
+                const pc=PRIORITY[a.priority]||PRIORITY.media;
+                const sc=STATUS_CFG[a.status]||STATUS_CFG.pendente;
+                const d=daysLeft(a.due_date); const late=d<0&&a.status!=="concluido";
                 return (
-                  <div key={a.id} style={{ background:"#fff", border:`1px solid ${late?"#FCA5A5":"#E2E8F0"}`, borderRadius:8, padding:"11px 14px", display:"flex", alignItems:"center", gap:12, borderLeft:`3px solid ${pc.color}` }}>
+                  <div key={a.id} style={{ background:"#fff", border:`1px solid ${late?"#FCA5A5":"#E2E8F0"}`, borderRadius:8, padding:"11px 14px", display:"flex", alignItems:"center", gap:12, borderLeft:`3px solid ${pc.color}`, opacity:saving===a.id?0.6:1 }}>
                     <div style={{ flex:1 }}>
                       <div style={{ fontSize:13, fontWeight:600, color:"#0F172A" }}>{a.what}</div>
                       <div style={{ fontSize:11, color:"#94A3B8", marginTop:2 }}>
-                        👤 {a.who} · 📅 {a.when}
-                        {late && <span style={{ color:"#DC2626", fontWeight:700 }}> · ⚠ {Math.abs(d)}d atraso</span>}
+                        👤 {a.who} · 📅 {a.due_date}
+                        {late&&<span style={{ color:"#DC2626", fontWeight:700 }}> · ⚠ {Math.abs(d)}d atraso</span>}
                       </div>
                     </div>
                     <div style={{ width:72 }}>
                       <div style={{ fontSize:10, color:"#94A3B8", marginBottom:3, textAlign:"right" }}>{a.progress}%</div>
                       <div style={{ height:4, background:"#F1F5F9", borderRadius:2, overflow:"hidden" }}>
-                        <div style={{ width:`${a.progress}%`, height:"100%", background: a.progress===100?"#16A34A":"#3B82F6", borderRadius:2 }} />
+                        <div style={{ width:`${a.progress}%`, height:"100%", background:a.progress===100?"#16A34A":"#3B82F6", borderRadius:2 }} />
                       </div>
                     </div>
                     <span style={{ fontSize:11, padding:"2px 9px", borderRadius:20, background:pc.bg, color:pc.color, fontWeight:600, whiteSpace:"nowrap" }}>{pc.label}</span>
-                    <select value={a.status} onChange={e => onUpdate(a.mId, a.id, "status", e.target.value)}
+                    <select value={a.status} onChange={e=>handleUpdate(a.mId,a.id,"status",e.target.value)}
                       style={{ fontSize:11, padding:"4px 8px", borderRadius:6, background:sc.bg, color:sc.color, border:`1px solid ${sc.color}40`, fontWeight:600, cursor:"pointer" }}>
                       <option value="pendente">○ Pendente</option>
                       <option value="em_andamento">◑ Em andamento</option>
@@ -398,126 +481,152 @@ function Acoes({ meetings, onUpdate }) {
   );
 }
 
-/* ── NEW MEETING MODAL ── */
-function NewMeetingModal({ onClose, onSave }) {
-  const [form, setForm] = useState({ title:"", type:"Qualidade", date:"2026-04-11", facilitator:"", participants:"" });
+// ── NEW MEETING MODAL ──
+function NewMeetingModal({ onClose, onSaved, userId }) {
+  const [form, setForm] = useState({ title:"", type:"Qualidade", date:new Date().toISOString().split("T")[0], facilitator:"", participants:"" });
   const [actions, setActions] = useState([{ what:"", who:"", when:"", priority:"media" }]);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
 
-  const inp = { width:"100%", padding:"8px 11px", borderRadius:6, border:"1px solid #E2E8F0", fontSize:13, color:"#0F172A", outline:"none" };
-
-  const save = () => {
-    if (!form.title||!form.facilitator) { alert("Preencha título e facilitador."); return; }
-    onSave({
-      ...form,
-      id: Date.now(),
-      participants: form.participants.split(",").map(p=>p.trim()).filter(Boolean),
-      status:"em_andamento",
-      actions: actions.filter(a=>a.what).map((a,i) => ({ ...a, id:Date.now()+i, status:"pendente", progress:0 }))
-    });
-    onClose();
+  const save = async () => {
+    if (!form.title||!form.facilitator) { setErr("Preencha título e facilitador."); return; }
+    setLoading(true); setErr("");
+    const { data: meeting, error: mErr } = await sb.from("meetings").insert({
+      title:form.title, type:form.type, date:form.date,
+      facilitator:form.facilitator,
+      participants:form.participants.split(",").map(p=>p.trim()).filter(Boolean),
+      status:"em_andamento", created_by:userId
+    }).select().single();
+    if (mErr) { setErr("Erro ao salvar. Tente novamente."); setLoading(false); return; }
+    const validActions = actions.filter(a=>a.what&&a.who);
+    if (validActions.length>0) {
+      await sb.from("actions").insert(validActions.map(a=>({
+        meeting_id:meeting.id, what:a.what, who:a.who,
+        due_date:a.when||null, priority:a.priority, status:"pendente", progress:0
+      })));
+    }
+    onSaved(); onClose();
   };
 
   return (
     <div className="modal-overlay">
-      <div style={{ background:"#fff", borderRadius:14, padding:26, width:540, maxHeight:"88vh", overflowY:"auto", boxShadow:"0 24px 64px rgba(0,0,0,0.18)" }}>
+      <div style={{ background:"#fff", borderRadius:14, padding:26, width:540, maxHeight:"88vh", overflowY:"auto", boxShadow:"0 24px 64px rgba(0,0,0,0.2)" }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:18 }}>
           <h2 style={{ margin:0, fontSize:17, fontWeight:700, color:"#0F172A", fontFamily:"'DM Serif Display',serif" }}>Nova Reunião</h2>
-          <button onClick={onClose} style={{ background:"none", border:"none", fontSize:22, cursor:"pointer", color:"#94A3B8", lineHeight:1 }}>×</button>
+          <button onClick={onClose} style={{ background:"none", border:"none", fontSize:22, cursor:"pointer", color:"#94A3B8" }}>×</button>
         </div>
         <div style={{ display:"flex", flexDirection:"column", gap:13 }}>
           <div>
-            <label style={{ fontSize:12, fontWeight:600, color:"#475569", display:"block", marginBottom:4 }}>Título *</label>
-            <input style={inp} placeholder="Ex: Reunião de Qualidade Semanal" value={form.title} onChange={e=>setForm({...form,title:e.target.value})} />
+            <label className="label">Título *</label>
+            <input className="inp" placeholder="Ex: Reunião de Qualidade Semanal" value={form.title} onChange={e=>setForm({...form,title:e.target.value})} />
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:11 }}>
             <div>
-              <label style={{ fontSize:12, fontWeight:600, color:"#475569", display:"block", marginBottom:4 }}>Tipo</label>
-              <select style={{...inp}} value={form.type} onChange={e=>setForm({...form,type:e.target.value})}>
+              <label className="label">Tipo</label>
+              <select className="inp" value={form.type} onChange={e=>setForm({...form,type:e.target.value})}>
                 {["Qualidade","Segurança","Produção","RH","Manutenção"].map(t=><option key={t}>{t}</option>)}
               </select>
             </div>
             <div>
-              <label style={{ fontSize:12, fontWeight:600, color:"#475569", display:"block", marginBottom:4 }}>Data</label>
-              <input type="date" style={inp} value={form.date} onChange={e=>setForm({...form,date:e.target.value})} />
+              <label className="label">Data</label>
+              <input type="date" className="inp" value={form.date} onChange={e=>setForm({...form,date:e.target.value})} />
             </div>
           </div>
           <div>
-            <label style={{ fontSize:12, fontWeight:600, color:"#475569", display:"block", marginBottom:4 }}>Facilitador *</label>
-            <input style={inp} placeholder="Nome do responsável" value={form.facilitator} onChange={e=>setForm({...form,facilitator:e.target.value})} />
+            <label className="label">Facilitador *</label>
+            <input className="inp" placeholder="Nome do responsável" value={form.facilitator} onChange={e=>setForm({...form,facilitator:e.target.value})} />
           </div>
           <div>
-            <label style={{ fontSize:12, fontWeight:600, color:"#475569", display:"block", marginBottom:4 }}>Participantes (separados por vírgula)</label>
-            <input style={inp} placeholder="João Silva, Maria Costa..." value={form.participants} onChange={e=>setForm({...form,participants:e.target.value})} />
+            <label className="label">Participantes (separados por vírgula)</label>
+            <input className="inp" placeholder="João Silva, Maria Costa..." value={form.participants} onChange={e=>setForm({...form,participants:e.target.value})} />
           </div>
           <div>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
-              <label style={{ fontSize:12, fontWeight:600, color:"#475569" }}>Planos de Ação</label>
-              <button onClick={() => setActions([...actions,{what:"",who:"",when:"",priority:"media"}])}
+              <label className="label" style={{ margin:0 }}>Planos de Ação</label>
+              <button onClick={()=>setActions([...actions,{what:"",who:"",when:"",priority:"media"}])}
                 style={{ background:"none", border:"1px solid #3B82F6", color:"#3B82F6", borderRadius:6, padding:"3px 10px", fontSize:12, cursor:"pointer", fontWeight:600 }}>+ Adicionar</button>
             </div>
-            {actions.map((a,i) => (
+            {actions.map((a,i)=>(
               <div key={i} style={{ background:"#F8FAFC", borderRadius:8, padding:11, marginBottom:7 }}>
-                <input style={{...inp, marginBottom:7, background:"#fff"}} placeholder="O quê?" value={a.what} onChange={e=>{const u=[...actions];u[i].what=e.target.value;setActions(u);}} />
+                <input className="inp" style={{ marginBottom:7 }} placeholder="O quê?" value={a.what} onChange={e=>{const u=[...actions];u[i].what=e.target.value;setActions(u);}} />
                 <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:7 }}>
-                  <input style={{...inp,background:"#fff"}} placeholder="Quem?" value={a.who} onChange={e=>{const u=[...actions];u[i].who=e.target.value;setActions(u);}} />
-                  <input type="date" style={{...inp,background:"#fff"}} value={a.when} onChange={e=>{const u=[...actions];u[i].when=e.target.value;setActions(u);}} />
-                  <select style={{...inp,background:"#fff"}} value={a.priority} onChange={e=>{const u=[...actions];u[i].priority=e.target.value;setActions(u);}}>
+                  <input className="inp" placeholder="Quem?" value={a.who} onChange={e=>{const u=[...actions];u[i].who=e.target.value;setActions(u);}} />
+                  <input type="date" className="inp" value={a.when} onChange={e=>{const u=[...actions];u[i].when=e.target.value;setActions(u);}} />
+                  <select className="inp" value={a.priority} onChange={e=>{const u=[...actions];u[i].priority=e.target.value;setActions(u);}}>
                     <option value="baixa">Baixa</option><option value="media">Média</option><option value="alta">Alta</option><option value="critica">Crítica</option>
                   </select>
                 </div>
               </div>
             ))}
           </div>
+          {err && <div style={{ fontSize:12, color:"#DC2626", background:"#FEE2E2", padding:"8px 11px", borderRadius:6 }}>{err}</div>}
         </div>
         <div style={{ display:"flex", gap:10, marginTop:18 }}>
           <button className="btn-ghost" onClick={onClose} style={{ flex:1 }}>Cancelar</button>
-          <button className="btn-primary" onClick={save} style={{ flex:2 }}>Salvar Reunião</button>
+          <button className="btn-primary" onClick={save} disabled={loading} style={{ flex:2 }}>
+            {loading ? <span className="spinner" /> : "Salvar Reunião"}
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
-/* ── APP ROOT ── */
+// ── APP ROOT ──
 function App() {
-  const [view, setView] = useState("dashboard");
-  const [meetings, setMeetings] = useState(MOCK);
-  const [selected, setSelected] = useState(null);
-  const [showNew, setShowNew] = useState(false);
+  const [session, setSession]     = useState(null);
+  const [authReady, setAuthReady] = useState(false);
+  const [view, setView]           = useState("dashboard");
+  const [meetings, setMeetings]   = useState([]);
+  const [selected, setSelected]   = useState(null);
+  const [showNew, setShowNew]     = useState(false);
+  const [loadingData, setLoadingData] = useState(false);
+  const [toast, setToast]         = useState("");
 
-  const handleUpdate = useCallback((mId, aId, field, val) => {
-    setMeetings(prev => prev.map(m => {
-      if (m.id !== mId) return m;
-      const updated = m.actions.map(a => {
-        if (a.id !== aId) return a;
-        const u = { ...a, [field]: val };
-        if (field==="status" && val==="concluido") u.progress = 100;
-        if (field==="status" && val==="pendente") u.progress = 0;
-        return u;
-      });
-      return { ...m, actions: updated };
-    }));
-    setSelected(prev => {
-      if (!prev || prev.id !== mId) return prev;
-      return { ...prev, actions: prev.actions.map(a => {
-        if (a.id !== aId) return a;
-        const u = { ...a, [field]: val };
-        if (field==="status" && val==="concluido") u.progress = 100;
-        if (field==="status" && val==="pendente") u.progress = 0;
-        return u;
-      })};
-    });
+  useEffect(() => {
+    sb.auth.getSession().then(({ data: { session } }) => { setSession(session); setAuthReady(true); });
+    const { data: { subscription } } = sb.auth.onAuthStateChange((_e, session) => setSession(session));
+    return () => subscription.unsubscribe();
   }, []);
 
-  const handleSave = (data) => setMeetings(prev => [data, ...prev]);
+  const loadMeetings = useCallback(async () => {
+    setLoadingData(true);
+    const { data: mData } = await sb.from("meetings").select("*").order("date", { ascending:false });
+    if (!mData) { setLoadingData(false); return; }
+    const { data: aData } = await sb.from("actions").select("*");
+    setMeetings(mData.map(m => ({ ...m, actions:(aData||[]).filter(a=>a.meeting_id===m.id) })));
+    setLoadingData(false);
+  }, []);
+
+  useEffect(() => { if (session) loadMeetings(); }, [session]);
+
+  const handleUpdateAction = useCallback((mId, aId, updates) => {
+    setMeetings(prev => prev.map(m => m.id!==mId ? m : { ...m, actions:m.actions.map(a => a.id!==aId ? a : { ...a, ...updates }) }));
+    setSelected(prev => !prev||prev.id!==mId ? prev : { ...prev, actions:prev.actions.map(a => a.id!==aId ? a : { ...a, ...updates }) });
+  }, []);
+
+  const handleLogout = async () => { await sb.auth.signOut(); setMeetings([]); setView("dashboard"); };
+
+  if (!authReady) return (
+    <div style={{ minHeight:"100vh", background:"#0F172A", display:"flex", alignItems:"center", justifyContent:"center" }}>
+      <div style={{ width:32, height:32, border:"3px solid #1E293B", borderTop:"3px solid #3B82F6", borderRadius:"50%", animation:"spin 0.6s linear infinite" }} />
+    </div>
+  );
+
+  if (!session) return <Login />;
 
   return (
     <div style={{ minHeight:"100vh", background:"#F8FAFC" }}>
-      <TopBar view={view} setView={setView} onNew={() => setShowNew(true)} />
-      {view==="dashboard" && <Dashboard meetings={meetings} setView={setView} setSelected={setSelected} />}
-      {view==="reunioes"  && <Reunioes meetings={meetings} selected={selected} setSelected={setSelected} onUpdate={handleUpdate} />}
-      {view==="acoes"     && <Acoes meetings={meetings} onUpdate={handleUpdate} />}
-      {showNew && <NewMeetingModal onClose={() => setShowNew(false)} onSave={handleSave} />}
+      <TopBar view={view} setView={setView} onNew={()=>setShowNew(true)} userEmail={session.user.email} onLogout={handleLogout} />
+      {loadingData ? <Loading /> : (
+        <>
+          {view==="dashboard" && <Dashboard meetings={meetings} setView={setView} setSelected={setSelected} />}
+          {view==="reunioes"  && <Reunioes  meetings={meetings} selected={selected} setSelected={setSelected} onUpdateAction={handleUpdateAction} />}
+          {view==="acoes"     && <Acoes     meetings={meetings} onUpdateAction={handleUpdateAction} />}
+        </>
+      )}
+      {showNew && <NewMeetingModal onClose={()=>setShowNew(false)} onSaved={()=>{ loadMeetings(); setToast("Reunião salva! ✓"); }} userId={session.user.id} />}
+      {toast && <Toast msg={toast} onDone={()=>setToast("")} />}
     </div>
   );
 }
